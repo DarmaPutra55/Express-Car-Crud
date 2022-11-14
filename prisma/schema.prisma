@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Car {
+  id        Int    @id @default(autoincrement())
+  name      String @db.VarChar(25)
+  owner_id  Int
+  status_id Int
+  users     User  @relation(fields: [owner_id], references: [id], onUpdate: Restrict, map: "FK_car_users")
+  status    Status @relation(fields: [status_id], references: [id], onUpdate: Restrict, map: "FK_cars_status")
+  jobs      Job[]
+
+  @@index([owner_id], map: "FK_car_users")
+  @@index([status_id], map: "FK_cars_status")
+
+  @@map("cars")
+}
+
+model Job {
+  id         Int      @id @default(autoincrement())
+  service_id Int
+  car_id     Int
+  note       String   @db.Text
+  cars       Car     @relation(fields: [car_id], references: [id], onUpdate: Restrict, map: "FK_jobs_cars")
+  services   Service @relation(fields: [service_id], references: [id], onUpdate: Restrict, map: "FK_jobs_services")
+  task       Task[]
+
+  @@unique([service_id, car_id], map: "service_id_car_id")
+  @@index([car_id], map: "FK_jobs_cars")
+
+  @@map("jobs")
+}
+
+model Role {
+  id    Int     @id @default(autoincrement())
+  role  String  @unique(map: "role") @db.VarChar(25)
+  users User[]
+
+  @@map("roles")
+}
+
+model Service {
+  id          Int           @id @default(autoincrement())
+  service     String        @unique(map: "service") @db.VarChar(25)
+  price       Decimal       @db.Decimal(19, 4)
+  jobs        Job[]
+  transaction Transaction[]
+
+  @@map("services")
+}
+
+model Status {
+  id     Int    @id @default(autoincrement())
+  status String @unique(map: "status") @db.VarChar(25)
+  cars   Car[]
+  task   Task[]
+
+  @@map("status")
+}
+
+model Task {
+  id          Int    @id @default(autoincrement())
+  mechanic_id Int
+  jobs_id     Int
+  status_id   Int
+  jobs        Job   @relation(fields: [jobs_id], references: [id], onUpdate: Restrict, map: "FK_task_jobs")
+  status      Status @relation(fields: [status_id], references: [id], onUpdate: Restrict, map: "FK_task_status")
+  users       User  @relation(fields: [mechanic_id], references: [id], onUpdate: Restrict, map: "FK_task_users")
+
+  @@unique([mechanic_id, jobs_id], map: "mechanic_id_jobs_id")
+  @@index([jobs_id], map: "FK_task_jobs")
+  @@index([status_id], map: "FK_task_status")
+
+  @@map("task")
+}
+
+model Transaction {
+  id         Int      @id @default(autoincrement())
+  car        String   @db.VarChar(25)
+  owner_id   Int
+  service_id Int
+  payment    Decimal  @db.Decimal(19, 4)
+  services   Service @relation(fields: [service_id], references: [id], onUpdate: Restrict, map: "FK_transaction_services")
+  users      User    @relation(fields: [owner_id], references: [id], onUpdate: Restrict, map: "FK_transaction_users")
+
+  @@index([service_id], map: "FK_transaction_services")
+  @@index([owner_id], map: "FK_transaction_users")
+
+  @@map("transaction")
+}
+
+model User {
+  id          Int           @id @default(autoincrement())
+  username    String        @unique(map: "username") @db.VarChar(25)
+  password    String        @db.Text
+  email       String        @unique(map: "email") @db.VarChar(50)
+  id_role     Int
+  roles       Role         @relation(fields: [id_role], references: [id], onUpdate: Restrict, map: "FK_users_roles")
+  cars        Car[]
+  task        Task[]
+  transaction Transaction[]
+
+  @@index([id_role], map: "FK_users_roles")
+
+  @@map("users")
+}
